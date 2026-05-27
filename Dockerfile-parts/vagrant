@@ -1,0 +1,12 @@
+ARG VAGRANT_VERSION
+
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+      amd64) deb_arch=amd64 ;; \
+      arm64) deb_arch=arm64 ;; \
+      *) echo "unsupported arch: $arch" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSL "https://releases.hashicorp.com/vagrant/${VAGRANT_VERSION}/vagrant_${VAGRANT_VERSION}-1_${deb_arch}.deb" -o /tmp/vagrant.deb \
+    && apt-get install -y --no-install-recommends /tmp/vagrant.deb \
+    && rm -f /tmp/vagrant.deb \
+    && rm -rf /var/lib/apt/lists/*
