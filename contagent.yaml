@@ -123,7 +123,7 @@ features:
     version:
       env: PI_VERSION
       default: latest
-      resolve: curl -fsSL "https://registry.npmjs.org/@mariozechner/pi-coding-agent/latest" | jq -r .version
+      resolve: curl -fsSL "https://registry.npmjs.org/@earendil-works/pi-coding-agent/latest" | jq -r .version
 
   - names: [codex, all, all-agents]
     path: Dockerfile-parts/codex
