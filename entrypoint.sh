@@ -51,6 +51,18 @@ add_extra_groups() {
   done
 }
 
+start_host_port_forwards() {
+  [ -n "${CONTAGENT_HOST_PORT_FORWARDS:-}" ] || return 0
+  IFS=',' read -r -a _fwd_specs <<<"$CONTAGENT_HOST_PORT_FORWARDS"
+  for _fwd in "${_fwd_specs[@]}"; do
+    _host_port="${_fwd%%:*}"
+    _container_port="${_fwd##*:}"
+    # Bind only on loopback so the forwarded port is not exposed beyond localhost.
+    socat TCP-LISTEN:"$_container_port",bind=127.0.0.1,fork,reuseaddr \
+      TCP:host.docker.internal:"$_host_port" &
+  done
+}
+
 # docker exec path: if mapped user is already ready, skip mutating passwd/group state.
 if getent passwd "$CONTAGENT_USERNAME" >/dev/null 2>&1 && \
   [ "$(id -u "$CONTAGENT_USERNAME")" = "$CONTAGENT_UID" ]; then
@@ -106,5 +118,7 @@ ln -s "$CONTAGENT_HOME/.local/state/contagent/bash_history" "$CONTAGENT_HOME/.ba
 getent passwd "$CONTAGENT_USERNAME" >/dev/null 2>&1 || {
   die "mapped user $CONTAGENT_USERNAME does not exist after setup"
 }
+
+start_host_port_forwards
 
 exec_as_user "$@"

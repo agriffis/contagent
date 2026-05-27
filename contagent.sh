@@ -16,6 +16,11 @@ Options:
   --gh-config                  Mount host ~/.config/gh into container
   --no-gh-config               Do not mount host ~/.config/gh
   --extra-groups <gid[,gid]>   Append supplementary group GIDs for this run
+  -p, --forward-host-port <spec>   Forward a host port into the container so it is
+                               reachable at localhost inside the container.
+                               <spec> is host_port or host_port:container_port
+                               (container_port defaults to host_port).
+                               May be repeated for multiple ports.
   -h, --help                   Show this help
 EOF
 }
@@ -27,6 +32,7 @@ CONTAGENT_IMAGE=${CONTAGENT_IMAGE:-contagent:latest}
 CONTAGENT_DOCKER_SOCKET=${CONTAGENT_DOCKER_SOCKET:-}
 CONTAGENT_GH_CONFIG=${CONTAGENT_GH_CONFIG:-}
 CONTAGENT_EXTRA_GROUP_GIDS=${CONTAGENT_EXTRA_GROUP_GIDS:-}
+CONTAGENT_HOST_PORT_FORWARDS=()
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -49,6 +55,14 @@ while [ "$#" -gt 0 ]; do
       ;;
     --extra-groups=*)
       CONTAGENT_EXTRA_GROUP_GIDS+="${CONTAGENT_EXTRA_GROUP_GIDS:+,}${1#*=}"
+      ;;
+    -p|--forward-host-port)
+      shift
+      [ "$#" -gt 0 ] || die "--forward-host-port requires a value"
+      CONTAGENT_HOST_PORT_FORWARDS+=("$1")
+      ;;
+    --forward-host-port=*)
+      CONTAGENT_HOST_PORT_FORWARDS+=("${1#*=}")
       ;;
     -h|--help)
       usage
@@ -196,6 +210,27 @@ if [ "${#extra_group_gids[@]}" -gt 0 ]; then
   docker_args+=(
     --env "CONTAGENT_EXTRA_GROUP_SPECS=$(IFS=,; printf '%s' "${extra_group_specs[*]}")"
   )
+fi
+
+# Validate and normalise --forward-host-port specs, then wire up socat forwarding.
+port_forward_specs=()
+for raw_spec in "${CONTAGENT_HOST_PORT_FORWARDS[@]}"; do
+  if [[ "$raw_spec" =~ ^([0-9]+):([0-9]+)$ ]]; then
+    host_port="${BASH_REMATCH[1]}"
+    container_port="${BASH_REMATCH[2]}"
+  elif [[ "$raw_spec" =~ ^([0-9]+)$ ]]; then
+    host_port="${BASH_REMATCH[1]}"
+    container_port="$host_port"
+  else
+    die "invalid --forward-host-port value: '$raw_spec' (expected host_port or host_port:container_port)"
+  fi
+  port_forward_specs+=("$host_port:$container_port")
+done
+
+if [ "${#port_forward_specs[@]}" -gt 0 ]; then
+  # host-gateway is a Docker built-in alias that resolves to the host's gateway IP.
+  docker_args+=(--add-host=host.docker.internal:host-gateway)
+  docker_args+=(--env "CONTAGENT_HOST_PORT_FORWARDS=$(IFS=,; printf '%s' "${port_forward_specs[*]}")")
 fi
 
 exec docker run "${docker_args[@]}" "$CONTAGENT_IMAGE" "$@"
