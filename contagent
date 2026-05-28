@@ -91,11 +91,11 @@ function parseArgs(argv, featureNames) {
     if (a === "--show-config") { showConfig = true; continue; }
     if (a === "--update-config") { updateConfig = true; continue; }
     if (a === "-c" || a === "--config") { configFile = argv[i++] || die("-c requires a value"); continue; }
-    if (a.startsWith("--config=")) { configFile = a.split("=", 2)[1]; continue; }
+    if (a.startsWith("--config=")) { configFile = a.slice("--config=".length); continue; }
     if (a === "--docker-args") { dockerArgs = argv[i++] || die("--docker-args requires a value"); continue; }
-    if (a.startsWith("--docker-args=")) { dockerArgs = a.split("=", 2)[1]; continue; }
+    if (a.startsWith("--docker-args=")) { dockerArgs = a.slice("--docker-args=".length); continue; }
     if (a === "--extra-groups") { extraGroups = argv[i++] || die("--extra-groups requires a value"); continue; }
-    if (a.startsWith("--extra-groups=")) { extraGroups = a.split("=", 2)[1]; continue; }
+    if (a.startsWith("--extra-groups=")) { extraGroups = a.slice("--extra-groups=".length); continue; }
     if (a.startsWith("--no-")) { const n = a.slice(5); if (!featureNames.has(n)) die(`unknown feature: ${n}`); flags.set(n, false); continue; }
     if (a.startsWith("--")) { const n = a.slice(2); if (!featureNames.has(n)) die(`unknown option: ${a}`); flags.set(n, true); continue; }
     if (a.startsWith("-")) die(`unknown option: ${a}`);
