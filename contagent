@@ -229,13 +229,33 @@ function main() {
   if (groups) args.push("--env", `CONTAGENT_EXTRA_GROUP_SPECS=${groups}`);
   if (p.dockerArgs) args.push(...shellSplit(p.dockerArgs));
 
-  const hb = features.find(f => f.name === "hostbridge")?.enabled;
-  if (hb) {
-    require("./hostbridge.js").start({ logFile: ".hostbridge-log" }).then(({ port, shutdown }) => {
+  async function launch() {
+    let shutdown = null;
+
+    const hb = features.find(f => f.name === "hostbridge")?.enabled;
+    if (hb) {
+      const { port, shutdown: hbShutdown } = await require("./hostbridge.js").start({ logFile: ".hostbridge-log" });
       args.push("--env", `HOSTBRIDGE_PORT=${port}`);
-      run(args, image, p.command, shutdown);
-    }).catch(e => die(e.message));
-  } else run(args, image, p.command);
+      shutdown = hbShutdown;
+    }
+
+    const herdr = features.find(f => f.name === "herdr")?.enabled;
+    if (herdr && process.env.HERDR_ENV === "1" && isSocket(process.env.HERDR_SOCKET_PATH || "")) {
+      const { socketPath, shutdown: herdrShutdown } = await require("./herdr-proxy.js").start({
+        upstreamSocket: process.env.HERDR_SOCKET_PATH,
+      });
+      args.push("--volume", `${socketPath}:${socketPath}`, "--env", `HERDR_SOCKET_PATH=${socketPath}`);
+      for (const v of ["HERDR_ENV", "HERDR_PANE_ID", "HERDR_TAB_ID", "HERDR_WORKSPACE_ID"]) {
+        if (process.env[v]) args.push("--env", `${v}=${process.env[v]}`);
+      }
+      const prev = shutdown;
+      shutdown = prev ? async () => { await prev(); await herdrShutdown(); } : herdrShutdown;
+    }
+
+    run(args, image, p.command, shutdown);
+  }
+
+  launch().catch(e => die(e.message));
 }
 
 function run(args, image, command, shutdown) {
