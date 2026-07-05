@@ -8,7 +8,7 @@ const path = require("path");
 const debug = process.env.HERDR_PROXY_DEBUG === "1";
 const log = debug ? (...a) => console.error("[herdr-proxy]", ...a) : () => {};
 
-const BLOCKED = ["workspace.", "worktree.", "integration.", "plugin."];
+const BLOCKED = ["workspace.", "worktree.", "plugin."];
 
 function isBlocked(method) {
   return typeof method === "string" && BLOCKED.some((p) => method.startsWith(p));
