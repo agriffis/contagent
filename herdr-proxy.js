@@ -64,7 +64,7 @@ function start({ upstreamSocket }) {
           pendingSplits.delete(msg.id);
           const newPaneId = msg.result.pane.pane_id;
           log("split succeeded, new pane", newPaneId, "sending docker exec");
-          const text = `docker exec -it ${containerId} /entrypoint.sh\n`;
+          const text = `exec docker exec -it ${containerId} /entrypoint.sh || exit\n`;
           const conn = net.createConnection(upstreamSocket);
           conn.write(JSON.stringify({ id: "_proxy_split", method: "pane.send_text", params: { pane_id: newPaneId, text } }) + "\n");
           conn.on("error", (e) => log("send_text error", e.message));
