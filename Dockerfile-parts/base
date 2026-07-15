@@ -35,3 +35,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 RUN if [ -x /usr/bin/fdfind ] && [ ! -e /usr/local/bin/fd ]; then ln -s /usr/bin/fdfind /usr/local/bin/fd; fi
+
+RUN arch=$(dpkg --print-architecture) \
+    && case "$arch" in \
+      amd64) hunk_arch=x64 ;; \
+      arm64) hunk_arch=arm64 ;; \
+      *) echo "unsupported architecture for hunk: $arch" >&2; exit 1 ;; \
+    esac \
+    && hunk_version=$(curl -fsSL "https://api.github.com/repos/modem-dev/hunk/releases/latest" | jq -r '.tag_name | ltrimstr("v")') \
+    && curl -fsSL "https://github.com/modem-dev/hunk/releases/download/v${hunk_version}/hunkdiff-linux-${hunk_arch}.tar.gz" \
+       | tar -xz -C /usr/local/bin --strip-components=1 "hunkdiff-linux-${hunk_arch}/hunk"
