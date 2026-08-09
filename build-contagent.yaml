@@ -146,6 +146,15 @@ features:
       default: latest
       resolve: curl -fsSL "https://registry.npmjs.org/pnpm/latest" | jq -r .version
 
+  - name: agent-browser
+    aliases: [agentbrowser, browser, all, all-tools]
+    path: Dockerfile-parts/agent-browser
+    default: false
+    version:
+      env: AGENT_BROWSER_VERSION
+      default: latest
+      resolve: curl -fsSL "https://registry.npmjs.org/agent-browser/latest" | jq -r .version
+
   - name: claude
     aliases: [claude-code, cc, claudecode, all, all-agents]
     path: Dockerfile-parts/claude-code

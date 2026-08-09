@@ -1,0 +1,6 @@
+ARG AGENT_BROWSER_VERSION
+
+RUN npm install -g \
+    "agent-browser@${AGENT_BROWSER_VERSION}" \
+    && npm cache clean --force \
+    && agent-browser install --with-deps
