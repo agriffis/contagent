@@ -45,7 +45,7 @@ function start({ upstreamSocket }) {
           log("blocked method", msg.method);
           client.write(errorResponse(msg.id, `method not available: ${msg.method}`));
         } else {
-          if (msg?.method === "pane.split") pendingSplits.add(msg.id);
+          if (msg?.method === "pane.split" || msg?.method === "tab.create") pendingSplits.add(msg.id);
           upstream.write(line);
         }
       }
@@ -60,9 +60,9 @@ function start({ upstreamSocket }) {
         let msg;
         try { msg = JSON.parse(line); } catch {}
         client.write(line);
-        if (msg && pendingSplits.has(msg.id) && msg.result?.pane?.pane_id) {
+        const newPaneId = msg?.result?.pane?.pane_id ?? msg?.result?.root_pane?.pane_id;
+        if (msg && pendingSplits.has(msg.id) && newPaneId) {
           pendingSplits.delete(msg.id);
-          const newPaneId = msg.result.pane.pane_id;
           log("split succeeded, new pane", newPaneId, "sending docker exec");
           const text = `exec docker exec -it ${containerId} /entrypoint.sh || exit\n`;
           const conn = net.createConnection(upstreamSocket);
