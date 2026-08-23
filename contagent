@@ -261,7 +261,13 @@ function main() {
     if (isTTY) startArgs.push("-i");
     startArgs.push(containerId);
 
-    const docker = cp.spawn("docker", startArgs, { stdio: "inherit" });
+    // Herdr detects agents by inspecting the pane's own foreground process; it can't see
+    // across the container boundary. HERDR_AGENT on this host-side `docker start` process
+    // (the pane's actual foreground process) hints which screen manifest to use instead.
+    // See https://herdr.dev/docs/agents/#vms-and-sandbox-wrappers.
+    const dockerEnv = herdr && p.command[0] ? { ...process.env, HERDR_AGENT: p.command[0] } : process.env;
+
+    const docker = cp.spawn("docker", startArgs, { stdio: "inherit", env: dockerEnv });
     docker.on("close", code => {
       const exit = () => process.exit(typeof code === "number" ? code : 1);
       shutdown ? shutdown().then(exit) : exit();
