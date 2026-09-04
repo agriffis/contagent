@@ -228,6 +228,18 @@ features:
       default: latest
       resolve: curl -fsSL "https://registry.npmjs.org/@github/copilot/latest" | jq -r .version
 
+  - name: zed
+    aliases: [zed-editor, all, all-tools]
+    path: Dockerfile-parts/zed
+    default: false
+    environment:
+      # Zed marks its integrated terminal with these; pi extensions such as
+      # pi-zed-plugin (tab spinner, completion bell, AI titles) key off them.
+      TERM_PROGRAM: zed
+      ZED_TERM: "true"
+    volumes:
+      - { path: ~/.config/zed, read_only: true }
+
   - name: hostbridge
     aliases: [all, all-tools]
     path: Dockerfile-parts/hostbridge
