@@ -1,0 +1,4 @@
+# Zed integration is runtime-only: the container needs Zed's terminal env vars
+# and a read-only view of the host Zed config (see the zed feature in
+# build-contagent.yaml). Nothing is installed into the image; pi extensions such
+# as pi-zed-plugin live in the bind-mounted ~/.pi.

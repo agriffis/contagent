@@ -95,6 +95,7 @@ Build-time options:
   - `--pi` (alias: `--pi-agent`) + `PI_VERSION`
   - `--codex` + `CODEX_VERSION`
   - `--copilot` (aliases: `--github-copilot`, `--githubcopilot`) + `COPILOT_VERSION`
+  - `--zed` (alias: `--zed-editor`) — no version; runtime config only, see [Zed](#zed)
 - Aggregates:
   - `--all-tools` (all non-agent tool features)
   - `--all-agents` (all agent features)
@@ -186,6 +187,26 @@ variables are never expanded.
   - **`file`** — `true` if the path is a file; a zero-byte file is created if it doesn't exist (default: `false`).
 - **`environment`** — map of env vars injected when the feature is enabled; replaces the embedded map for that feature. Values are expanded but never path-resolved: a leading `./` passes through literally (with a warning), since it may be meant relative to the consumer's runtime cwd — use `${PWD}/...` for launch-dir-relative. Non-string values are skipped with a warning (unquoted `~` is YAML null — quote it).
 - **`ports`** — list of `docker --publish` port specs; replaces the embedded list for that feature.
+
+## Zed
+
+The `zed` feature makes an agent running in Zed's built-in terminal behave as
+if it were running on the host: it injects `TERM_PROGRAM=zed` and
+`ZED_TERM=true`, which is how Zed marks its terminal, and mounts
+`~/.config/zed` read-only so tools can read your Zed settings.
+
+```bash
+./contagent --zed pi
+```
+
+Extensions like [`pi-zed-plugin`](https://www.npmjs.com/package/pi-zed-plugin)
+(tab spinner, completion bell, AI-generated tab titles) then activate inside the
+container. Nothing is installed into the image: install the extension on the
+host with `pi install npm:pi-zed-plugin` and the container picks it up through
+the bind-mounted `~/.pi` from the `pi` feature.
+
+Only enable it when you actually launch from Zed's terminal; otherwise the env
+vars claim a Zed terminal that isn't there.
 
 ## Hostbridge
 
