@@ -14,7 +14,7 @@ keeping filesystem and credential exposure narrow and intentional.
 
 ## What it provides
 
-- Runtime image with common CLI tools plus Claude Code, OpenCode, Pi, Codex, and Copilot.
+- Runtime image with common CLI tools plus Claude Code, OpenCode, Pi (with `pi-acp`), Codex, and Copilot.
 - Host identity mapping (username, primary group name, UID, GID, home).
 - Project mounted at the same absolute path inside the container.
 - Minimal allowlist mounts for agent config/cache/state paths.
@@ -92,7 +92,7 @@ Build-time options:
   - `--rust` + `RUST_VERSION`
   - `--claude` (aliases: `--claude-code`, `--cc`, `--claudecode`) + `CLAUDE_CODE_VERSION`
   - `--opencode` + `OPENCODE_VERSION`
-  - `--pi` (alias: `--pi-agent`) + `PI_VERSION`
+  - `--pi` (alias: `--pi-agent`) + `PI_VERSION` (also installs the `pi-acp` ACP adapter)
   - `--codex` + `CODEX_VERSION`
   - `--copilot` (aliases: `--github-copilot`, `--githubcopilot`) + `COPILOT_VERSION`
 - Aggregates:

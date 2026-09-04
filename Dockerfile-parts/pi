@@ -1,5 +1,8 @@
 ARG PI_VERSION
 
+# pi-acp is pi's ACP (Agent Client Protocol) adapter, versioned independently
+# of pi itself, so it tracks latest rather than PI_VERSION.
 RUN npm install -g \
     "@earendil-works/pi-coding-agent@${PI_VERSION}" \
+    pi-acp \
     && npm cache clean --force
