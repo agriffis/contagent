@@ -14,6 +14,9 @@ Options:
   --no-<feature>              Disable a feature
   --docker-args <args>        Extra docker run args (shell-quoted string)
   --extra-groups <gid[,gid]>  Supplementary group GIDs
+  --pipe                      Attach stdin without allocating a tty, even when
+                              stdin/stdout aren't a real terminal (for callers
+                              that speak a framed protocol, e.g. ACP, over pipes)
   -h, --help                  Show this help
 `;
 
@@ -85,6 +88,7 @@ function parseArgs(argv, featureNames) {
   const flags = new Map();
   let dockerArgs = null;
   let extraGroups = null;
+  let pipe = false;
   let configFile = null, showConfig = false, updateConfig = false, help = false;
   let command = [], i = 0;
   while (i < argv.length) {
@@ -99,6 +103,7 @@ function parseArgs(argv, featureNames) {
     if (a.startsWith("--docker-args=")) { dockerArgs = a.slice("--docker-args=".length); continue; }
     if (a === "--extra-groups") { extraGroups = argv[i++] || die("--extra-groups requires a value"); continue; }
     if (a.startsWith("--extra-groups=")) { extraGroups = a.slice("--extra-groups=".length); continue; }
+    if (a === "--pipe") { pipe = true; continue; }
     if (a.startsWith("--no-")) { const n = a.slice(5); if (!featureNames.has(n)) die(`unknown feature: ${n}`); flags.set(n, false); continue; }
     if (a.startsWith("--")) { const n = a.slice(2); if (!featureNames.has(n)) die(`unknown option: ${a}`); flags.set(n, true); continue; }
     if (a.startsWith("-")) die(`unknown option: ${a}`);
@@ -107,7 +112,8 @@ function parseArgs(argv, featureNames) {
   configFile = configFile ?? process.env.CONTAGENT_CONFIG ?? ".contagent.yaml";
   dockerArgs = dockerArgs ?? process.env.CONTAGENT_DOCKER_ARGS ?? "";
   extraGroups = extraGroups ?? process.env.CONTAGENT_EXTRA_GROUP_GIDS ?? "";
-  return { configFile, command, showConfig, updateConfig, help, extraGroups, flags, dockerArgs };
+  pipe = pipe || !!process.env.CONTAGENT_PIPE;
+  return { configFile, command, showConfig, updateConfig, help, extraGroups, flags, dockerArgs, pipe };
 }
 
 // ---------- volumes ----------
@@ -192,8 +198,13 @@ function main() {
 
   // Docker args
   const isTTY = process.stdin.isTTY && process.stdout.isTTY;
+  // --pipe attaches stdin without allocating a tty, for callers (like an ACP
+  // adapter) that frame a protocol over stdin/stdout rather than driving a
+  // terminal; a pty would otherwise mangle that framing.
+  const attachStdin = isTTY || p.pipe;
   const createArgs = ["--rm", "--workdir", cwd, "--volume", `${cwd}:${cwd}`];
   if (isTTY) createArgs.push("--interactive", "--tty");
+  else if (attachStdin) createArgs.push("--interactive");
 
   const identity = {
     CONTAGENT_USERNAME: process.env.USER || id("-un"),
@@ -258,7 +269,7 @@ function main() {
     if (herdrProxy) herdrProxy.setContainerId(containerId);
 
     const startArgs = ["start", "-a"];
-    if (isTTY) startArgs.push("-i");
+    if (attachStdin) startArgs.push("-i");
     startArgs.push(containerId);
 
     // Herdr detects agents by inspecting the pane's own foreground process; it can't see
